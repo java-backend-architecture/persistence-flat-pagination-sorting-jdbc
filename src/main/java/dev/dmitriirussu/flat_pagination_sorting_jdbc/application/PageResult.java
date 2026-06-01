@@ -1,7 +1,6 @@
 package dev.dmitriirussu.flat_pagination_sorting_jdbc.application;
 
 import java.util.List;
-import java.util.function.Function;
 
 /**
  * Generic page result wrapper.

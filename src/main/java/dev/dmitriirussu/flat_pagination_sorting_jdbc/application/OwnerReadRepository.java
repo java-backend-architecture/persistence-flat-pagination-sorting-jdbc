@@ -7,5 +7,5 @@ package dev.dmitriirussu.flat_pagination_sorting_jdbc.application;
  * infrastructure provides the implementation.
  */
 public interface OwnerReadRepository {
-    PageResult<OwnerView> findAllFlat(PageRequest request);
+    PageResult<OwnerView> findAllFlat(PageQuery request);
 }
