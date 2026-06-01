@@ -4,8 +4,9 @@ Extends [persistence-flat-pagination-jdbc](https://github.com/java-backend-archi
 
 ## What it shows
 
-* Multi-field sorting via `SortRequest` with whitelist validation against SQL injection
-* Dynamic `ORDER BY` built safely from an allowed fields set
+* Multi-field sorting via `SortRequest` with domain field names — no SQL aliases in the application layer
+* SQL alias mapping lives in the infrastructure adapter — `FIELD_MAP` translates domain names to SQL
+* Dynamic `ORDER BY` built safely at the infrastructure boundary
 * Offset-based pagination with `LIMIT / OFFSET` and `COUNT(*)`
 * Using `package-private` classes as an encapsulation boundary inside the infrastructure layer
 
@@ -22,7 +23,7 @@ Extends [persistence-flat-pagination-jdbc](https://github.com/java-backend-archi
 application/
     OwnerReadRepository   ← port (interface)
     OwnerView             ← read model
-    PageRequest           ← pagination + sort input
+    PageQuery             ← pagination + sort input
     PageResult<T>         ← pagination output
     SortRequest           ← sort field + direction with whitelist validation
 
@@ -36,29 +37,38 @@ infrastructure/
 
 ```java
 // no sorting — default ORDER BY o.id ASC
-PageRequest.of(0, 10);
+PageQuery.of(0, 10);
 
 // single field
-PageRequest.of(0, 10, SortRequest.asc("o.name"));
+PageQuery.of(0, 10, List.of(SortRequest.asc("name")));
 
 // multiple fields
-PageRequest.of(0, 10, List.of(
-    SortRequest.asc("o.name"),
-    SortRequest.desc("o.id")
+PageQuery.of(0, 10, List.of(
+    SortRequest.asc("name"),
+    SortRequest.desc("id")
 ));
 ```
 
 ## Why a whitelist
 
-`SortRequest` validates the field against an allowed set — invalid fields throw `IllegalArgumentException`:
+`SortRequest` validates the field against an allowed set of domain names — invalid fields throw `IllegalArgumentException`:
 
 ```java
-private static final Set<String> ALLOWED_FIELDS = Set.of("o.id", "o.name");
+private static final Set<String> ALLOWED_FIELDS = Set.of("id", "name");
 ```
 
-This prevents SQL injection via the sort parameter. The allowed set is the only place to extend when new sortable fields are added.
+The mapping to SQL aliases happens in the infrastructure adapter:
 
-`PageRequest`, `PageResult`, `SortRequest` have zero framework dependencies — copy them into any Java project.
+```java
+private static final Map<String, String> FIELD_MAP = Map.of(
+    "id",   "o.id",
+    "name", "o.name"
+);
+```
+
+This keeps the application layer free of SQL details. The allowed set and the field map are the only places to extend when new sortable fields are added.
+
+`PageQuery`, `PageResult`, `SortRequest` have zero framework dependencies — copy them into any Java project.
 
 ## Tests
 
